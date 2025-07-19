@@ -1,0 +1,32 @@
+name: Daily Bill Reminders
+
+on:
+  schedule:
+    # Run every day at 9:00 AM UTC (5:00 PM Singapore time)
+    - cron: '0 9 * * *'
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  send-reminders:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Bill Reminders
+        run: |
+          curl -X POST "${{ secrets.SUPABASE_URL }}/functions/v1/check-bill-reminders" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Content-Type: application/json" \
+            --fail-with-body \
+            --show-error \
+            --silent \
+            --output response.json
+          
+          echo "Response from reminder service:"
+          cat response.json
+          
+          # Check if the response indicates success
+          if ! grep -q '"success":true' response.json; then
+            echo "❌ Reminder service failed"
+            exit 1
+          else
+            echo "✅ Reminder service completed successfully"
+          fi
